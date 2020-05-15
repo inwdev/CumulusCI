@@ -1,4 +1,6 @@
+from pathlib import Path
 import sarge
+import shutil
 
 from cumulusci.core.config import BaseConfig
 from cumulusci.core.config import ConnectedAppOAuthConfig
@@ -23,12 +25,13 @@ class BaseProjectKeychain(BaseConfig):
     encrypted = False
 
     def __init__(self, project_config, key):
-        super(BaseProjectKeychain, self).__init__()
+        super().__init__()
         self.config = {"orgs": {}, "app": None, "services": {}}
         self.project_config = project_config
         self.key = key
         self._validate_key()
         self._load_keychain()
+        self._data_caches = {}
 
     def _convert_connected_app(self):
         """Convert Connected App to service"""
@@ -259,3 +262,31 @@ class BaseProjectKeychain(BaseConfig):
         services = list(self.services.keys())
         services.sort()
         return services
+
+    def _get_org_cache_dir(self, name):
+        cache_dir = Path(self.config_local_dir, name + ".cache")
+        if cache_dir:
+            cache_dir = Path(cache_dir)
+        if cache_dir.exists():
+            return cache_dir
+
+    def _remove_org_cache_dir(self, name):
+        cache_dir = self._get_cache_dir()
+        if cache_dir:
+            try:
+                shutil.rmtree(cache_dir)
+            except OSError as e:
+                self.logger.warning(f"Cannot remove {cache_dir}: {e}")
+                return None
+
+    def _create_cache_dir(self, cache_dir):
+        cache_dir = Path(cache_dir)
+        if cache_dir.exists():
+            return cache_dir
+        else:
+            try:
+                cache_dir.mkdir()
+                return cache_dir
+            except OSError as e:
+                self.logger.warning(f"Cannot create {cache_dir}: {e}")
+                return None

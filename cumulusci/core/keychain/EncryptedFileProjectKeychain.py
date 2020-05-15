@@ -32,6 +32,10 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
                 if key not in self.config:
                     self.config[key] = {}
                 self.config[key][name] = config
+                cache_dir = os.path.join(dirname, item.replace(extension, ".cache"))
+                self._data_caches.setdefault(key, {})[name] = self._create_cache_dir(
+                    cache_dir
+                )
 
     def _load_file(self, dirname, filename, key):
         if dirname is None:
@@ -75,6 +79,8 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
             )
 
         os.remove(full_path)
+        self._remove_cache_dir(name)
+
         del self.orgs[name]
 
     def _set_encrypted_org(self, name, encrypted, global_org):
